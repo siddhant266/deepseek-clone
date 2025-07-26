@@ -21,90 +21,103 @@ const PromptBox = ({ setIsLoading, isLoading }) => {
     }
   };
 
-  const sendPrompt = async () => {
-    const promptCopy = prompt;
-    try {
-      if (!user)
-        if (!user) {
-          toast.error("Please login to continue");
-          router.push("/sign-in");
-          return;
-        }
+const sendPrompt = async () => {
+  const promptCopy = prompt;
+  try {
+    if (!user) {
+      toast.error("Please login to continue");
+      router.push("/sign-in");
+      return;
+    }
 
-      if (isLoading)
-        return toast.error("Please wait for the previous prompt response");
+    if (!selectedChats) {
+      toast.error("No chat selected.");
+      return;
+    }
 
-      setIsLoading(true);
-      setPrompt("");
+    if (isLoading)
+      return toast.error("Please wait for the previous prompt response");
 
-      const userPrompt = {
-        role: "user",
-        content: prompt,
-        timestamp: Date.now(),
+    setIsLoading(true);
+    setPrompt("");
+
+    const userPrompt = {
+      role: "user",
+      content: prompt,
+      timestamp: Date.now(),
+    };
+
+    // Define assistantMessage here so you can safely use it below
+    let assistantMessage = {
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+    };
+
+    // Optimistic update to chat state
+    setChats((prevChats) =>
+      prevChats.map((chat) =>
+        chat._id === selectedChats._id
+          ? { ...chat, messages: [...chat.messages, userPrompt] }
+          : chat
+      )
+    );
+
+    setselectedChats((prev) => {
+      if (!prev) return prev;
+      const updatedMessages = [...prev.messages, userPrompt];
+      return {
+        ...prev,
+        messages: updatedMessages,
       };
+    });
 
-      setChats((prevChats) =>
-        prevChats.map((chat) =>
-          chat._id === selectedChats._id
-            ? { ...chat, messages: [...chat.messages, userPrompt] }
-            : chat
-        )
-      );
+    const response = await axios.post("/api/chat/ai", {
+      chatId: selectedChats._id,
+      prompt: promptCopy,
+    });
 
+    const data = response.data;
+
+    if (data.success) {
+      const message = data.data.content;
+      const messageTokens = message.split(" ");
+
+      // Add initial empty assistant message
       setselectedChats((prev) => ({
         ...prev,
-        messages: [...prev.messages, userPrompt],
+        messages: [...prev.messages, assistantMessage],
       }));
 
-      const response = await axios.post("/api/chat/ai", {
-        chatId: selectedChats._id,
-        prompt: promptCopy,
-      });
-
-      const data = response.data;
-
-      if (data.success) {
-        const message = data.data.content;
-        const messageTokens = message.split(" ");
-
-        let assistantMessage = {
-          role: "assistant",
-          content: "",
-          timestamp: Date.now(),
-        };
-        y;
-
-        setselectedChats((prev) => ({
-          ...prev,
-          messages: [...prev.messages, assistantMessage],
-        }));
-
-        for (let i = 0; i < messageTokens.length; i++) {
-          setTimeout(() => {
-            assistantMessage.content = messageTokens.slice(0, i + 1).join(" ");
-            setselectedChats((prev) => {
-              const updatedMessages = [
-                ...prev.messages.slice(0, -1),
-                assistantMessage,
-              ];
-              return {
-                ...prev,
-                messages: updatedMessages,
-              };
-            });
-          }, i * 100);
-        }
-      } else {
-        toast.error(data.message);
-        setPrompt(promptCopy);
+      // Animate assistant message word by word
+      for (let i = 0; i < messageTokens.length; i++) {
+        setTimeout(() => {
+          assistantMessage.content = messageTokens.slice(0, i + 1).join(" ");
+          setselectedChats((prev) => {
+            if (!prev) return prev;
+            const updatedMessages = [
+              ...prev.messages.slice(0, -1),
+              assistantMessage,
+            ];
+            return {
+              ...prev,
+              messages: updatedMessages,
+            };
+          });
+        }, i * 100);
       }
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Something went wrong");
+    } else {
+      toast.error(data.message);
       setPrompt(promptCopy);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    toast.error(error?.response?.data?.message || "Something went wrong");
+    setPrompt(promptCopy);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <form

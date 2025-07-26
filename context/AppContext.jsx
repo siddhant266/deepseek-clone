@@ -68,8 +68,8 @@ export const AppContextProvider = ({ children }) => {
         }
 
         //set recetly updated chat as selected chat
-        setselectedChats(data.data[0]);
-        console.log(data.data[0]);
+        setselectedChats(data?.data[0]);
+        console.log(data?.data[0]);
       } else {
         toast.error(data.message);
       }
