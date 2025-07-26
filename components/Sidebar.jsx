@@ -5,6 +5,7 @@ import { useClerk, UserButton } from "@clerk/nextjs";
 import { useAppContext } from "@/context/AppContext";
 import ChatLabel from "./ChatLabel";
 
+
 const Sidebar = ({ expand, setexpand }) => {
   const { openSignIn } = useClerk();
   const { user, chats, createNewChat ,setChats} = useAppContext();

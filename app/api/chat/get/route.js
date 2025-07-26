@@ -17,7 +17,7 @@ export async function GET(req) {
 
     await connectDB();
     const data = await Chat.find({ userId });
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data }); 
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error.message },
